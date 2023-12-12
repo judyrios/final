@@ -1,0 +1,110 @@
+class Piece:
+    def __init__(self, size, player):
+        self.size = size
+        self.player = player
+
+    def __repr__(self):
+        return f"{self.player}{self.size}"
+
+class GobbletGobblers:
+    def __init__(self):
+        self.board = [[[] for _ in range(3)] for _ in range(3)]
+        self.players = {"A": {"L": 2, "M": 2, "S": 2}, "B": {"L": 2, "M": 2, "S": 2}}
+        self.current_player = "A"
+
+    def move(self, startX, startY, endX, endY, size):
+        if startX is not None:
+            if not self.board[startX][startY] or self.board[startX][startY][-1].size != size or self.board[startX][startY][-1].player != self.current_player:
+                print("Invalid move: No such piece at the location")
+                return False
+        else:
+            if self.players[self.current_player][size] == 0:
+                print("Invalid move: No more pieces of this size available")
+                return False
+
+        if self.board[endX][endY] and self.board[endX][endY][-1].size >= size:
+            print("Invalid move: Cannot place on a larger or same size piece")
+            return False
+
+        if startX is not None:
+            self.board[endX][endY].append(self.board[startX][startY].pop())
+        else:
+            self.board[endX][endY].append(Piece(size, self.current_player))
+            self.players[self.current_player][size] -= 1
+
+        if self.check_win():
+            print(f"Player {self.current_player} wins!")
+            return True
+
+        self.current_player = "B" if self.current_player == "A" else "A"
+        return True
+
+    def wins(self):
+        for i in range(3):
+            if self.check_line([(i, j) for j in range(3)]) or self.check_line([(j, i) for j in range(3)]):
+                return True
+        if self.check_line([(i, i) for i in range(3)]) or self.check_line([(i, 2 - i) for i in range(3)]):
+            return True
+        return False
+
+    def check_line(self, positions):
+        line = [self.board[x][y][-1].player if self.board[x][y] else None for x, y in positions]
+        return line.count(line[0]) == 3 and line[0] is not None
+
+    def __repr__(self):
+        board_str = "  0      1      2\n_______________________\n"
+        for i, row in enumerate(self.board):
+            board_str += f"{i}|"
+            for cell in row:
+                piece = str(cell[-1]) if cell else "____"
+                board_str += f"{piece.center(6)}|"
+            board_str += "\n"
+        board_str += "_______________________\n"
+        pieces_str = f"Player A: {self.players['A']}\nPlayer B: {self.players['B']}"
+        return f"{board_str}\n{pieces_str}"
+
+def getCoordinates(prompt):
+    while True:
+        coordinates = input(prompt)
+        if coordinates.lower() == 'n':
+            return None, None
+        try:
+            x, y = map(int, coordinates.split(','))
+            if 0 <= x < 3 and 0 <= y < 3:
+                return x, y
+            else:
+                print("Invalid coordinates. Enter values between 0 and 2, separated by a comma.")
+        except ValueError:
+            print("Invalid format. Enter coordinates as row,column.")
+
+def pieceSize():
+    while True:
+        size = input("Enter piece size (L/M/S): ").upper()
+        if size in ["L", "M", "S"]:
+            return size
+        else:
+            print("Invalid size. Enter L, M, or S.")
+
+def main():
+    game = GobbletGobblers()
+    gameOver = False
+
+    while not gameOver:
+        print(game)
+        print(f"Player {game.current_player}'s turn.")
+
+        startX, startY = getCoordinates("Enter the coordinates to move from (or 'n' for a new piece): ")
+        if startX is None:
+            size = pieceSize()
+        else:
+            size = pieceSize()
+
+        endX, endY = getCoordinates("Enter the coordinates to move to (row,column): ")
+        moveResult = game.move(startX, startY, endX, endY, size)
+        if moveResult:
+            gameOver = game.check_win()
+
+    print("Game over!")
+
+if __name__ == "__main__":
+    main()
